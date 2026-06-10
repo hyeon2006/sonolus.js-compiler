@@ -39,10 +39,10 @@ export const dataAnalysisForwardIR = <T>(
 
             const input = meetAll(initial, inputStates, meet)
 
-            const output = transfer(ir, input)
-
             const oldState = states.get(ir)
             if (!oldState) throw new Error('Unexpected missing old state')
+
+            const output = transfer(ir, input, oldState)
 
             if (compare(output, oldState)) continue
 
