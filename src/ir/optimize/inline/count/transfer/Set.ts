@@ -9,7 +9,19 @@ export const transferCountInlineSet: TransferCountInlineStateIR<Set> = (
     const oldElement = input.refs.get(ir.target)
     const targets = dependencies.get(ir.target)
 
-    if (!oldElement && !targets?.size) return input
+    if (!oldElement) {
+        if (!targets?.size) return input
+
+        let needed = false
+        for (const target of targets) {
+            const element = input.refs.get(target)
+            if (element !== undefined && element !== 'T') {
+                needed = true
+                break
+            }
+        }
+        if (!needed) return input
+    }
 
     const output = {
         refs: new Map(input.refs),
