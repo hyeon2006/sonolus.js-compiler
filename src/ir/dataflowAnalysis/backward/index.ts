@@ -13,36 +13,62 @@ export const dataAnalysisBackwardIR = <T>(
     const { transfer, meet, compare } = operators
 
     const graph = generate(ir, irs)
-    const workList = [...irs]
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-condition
-    while ((ir = workList.shift()!)) {
-        const inputs = graph.outs.get(ir)
-        if (!inputs) throw new Error('Unexpected missing outs')
+    const orderedIrs = [...irs].reverse()
+    const indexes = new Map(orderedIrs.map((ir, index) => [ir, index]))
+    const dirty = orderedIrs.map(() => true)
 
-        const inputStates = [...inputs].map((ir) => {
-            const state = states.get(ir)
-            if (!state) throw new Error('Unexpected missing state')
+    const transferred = new Map<IR, T>()
+    const getTransferred = (ir: IR) => {
+        const cached = transferred.get(ir)
+        if (cached !== undefined) return cached
 
-            return transfer(ir, state)
-        })
+        const state = states.get(ir)
+        if (!state) throw new Error('Unexpected missing state')
 
-        const output = meetAll(initial, inputStates, meet)
+        const output = transfer(ir, state)
+        transferred.set(ir, output)
 
-        const oldState = states.get(ir)
-        if (!oldState) throw new Error('Unexpected missing old state')
+        return output
+    }
 
-        if (compare(output, oldState)) continue
+    let needsSweep = true
+    while (needsSweep) {
+        needsSweep = false
 
-        states.set(ir, output)
+        for (let index = 0; index < orderedIrs.length; index++) {
+            if (!dirty[index]) continue
+            dirty[index] = false
 
-        const ins = graph.ins.get(ir)
-        if (!ins) throw new Error('Unexpected missing ins')
+            const ir = orderedIrs[index]
 
-        for (const ir of ins) {
-            if (workList.includes(ir)) continue
+            const inputs = graph.outs.get(ir)
+            if (!inputs) throw new Error('Unexpected missing outs')
 
-            workList.push(ir)
+            const inputStates = [...inputs].map(getTransferred)
+
+            const output = meetAll(initial, inputStates, meet)
+
+            const oldState = states.get(ir)
+            if (!oldState) throw new Error('Unexpected missing old state')
+
+            if (compare(output, oldState)) continue
+
+            states.set(ir, output)
+            transferred.delete(ir)
+
+            const ins = graph.ins.get(ir)
+            if (!ins) throw new Error('Unexpected missing ins')
+
+            for (const inIr of ins) {
+                const inIndex = indexes.get(inIr)
+                if (inIndex === undefined) throw new Error('Unexpected missing index')
+
+                if (dirty[inIndex]) continue
+                dirty[inIndex] = true
+
+                if (inIndex <= index) needsSweep = true
+            }
         }
     }
 }

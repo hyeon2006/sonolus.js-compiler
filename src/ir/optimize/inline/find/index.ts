@@ -11,8 +11,8 @@ export const findInlineIR = (
     ir: IR,
     irs: IR[],
 ): { states: FindInlineStates; merged: ReadonlySet<Set> } => {
-    const input: FindInlineState = []
-    const states: FindInlineStates = new Map(irs.map((ir) => [ir, []]))
+    const input: FindInlineState = new Map()
+    const states: FindInlineStates = new Map(irs.map((ir) => [ir, new Map()]))
 
     dataAnalysisForwardIR(ir, irs, input, states, {
         transfer: transferFindInlineIR,
@@ -37,7 +37,7 @@ const collectMerged = (ir: IR, irs: IR[], states: FindInlineStates): ReadonlySet
             const state = states.get(inNode)
             if (!state) throw new Error('Unexpected missing state')
 
-            for (const { k: target, v: value } of state) {
+            for (const [target, value] of state) {
                 const previous = seen.get(target)
                 if (previous === undefined) {
                     seen.set(target, value)

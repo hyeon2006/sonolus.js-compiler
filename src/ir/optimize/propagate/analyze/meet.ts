@@ -1,10 +1,10 @@
-import { myMapMerge } from '../../../../utils/MyMap.js'
+import { mapMerge } from '../../../../utils/map.js'
 import { PropagateState } from './state.js'
 
 export const meetPropagateStates = (a: PropagateState, b: PropagateState): PropagateState =>
     a === b
         ? a
-        : myMapMerge(a, b, (elementA, elementB) => {
+        : mapMerge(a, b, (elementA, elementB) => {
               if (elementA === 'T' || elementB === 'T') return 'T'
 
               if (!elementA || !elementB) return elementA ?? elementB

@@ -6,7 +6,7 @@ export const transferCountInlineNative: TransferCountInlineStateIR<Native> = (ir
     if (sideEffectFreeFuncs.includes(ir.func)) return input
 
     return {
-        refs: input.refs.map(({ k }) => ({ k, v: 'T' })),
+        refs: new Map([...input.refs.keys()].map((k) => [k, 'T'])),
         counts: input.counts,
     }
 }

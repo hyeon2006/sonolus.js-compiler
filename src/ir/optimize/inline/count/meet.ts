@@ -1,4 +1,4 @@
-import { myMapMerge } from '../../../../utils/MyMap.js'
+import { mapMerge } from '../../../../utils/map.js'
 import { CountInlineState } from './state.js'
 
 export const meetCountInlineStates = (
@@ -8,7 +8,7 @@ export const meetCountInlineStates = (
     refs:
         a.refs === b.refs
             ? a.refs
-            : myMapMerge(a.refs, b.refs, (valueA, valueB) => {
+            : mapMerge(a.refs, b.refs, (valueA, valueB) => {
                   if (valueA === 'T' || valueB === 'T') return 'T'
 
                   return valueA ?? valueB
@@ -16,7 +16,7 @@ export const meetCountInlineStates = (
     counts:
         a.counts === b.counts
             ? a.counts
-            : myMapMerge(a.counts, b.counts, (valueA, valueB) => {
+            : mapMerge(a.counts, b.counts, (valueA, valueB) => {
                   if (valueA === 'T' || valueB === 'T') return 'T'
 
                   return valueA ?? valueB
