@@ -5,8 +5,13 @@ import { TransferCountInlineStateIR } from './index.js'
 export const transferCountInlineNative: TransferCountInlineStateIR<Native> = (ir, input) => {
     if (sideEffectFreeFuncs.includes(ir.func)) return input
 
+    const refs = new Map<object, 'T'>()
+    for (const target of input.refs.keys()) {
+        refs.set(target, 'T')
+    }
+
     return {
-        refs: new Map([...input.refs.keys()].map((k) => [k, 'T'])),
+        refs,
         counts: input.counts,
     }
 }

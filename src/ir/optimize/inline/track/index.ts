@@ -9,33 +9,24 @@ import { trackInlineSet } from './Set.js'
 export type TrackInlineIR<N extends IR> = (
     ir: N,
     ctx: TrackInlineIRContext,
-) => {
-    sideEffect: boolean
-    dependencies: object[]
-}
+    dependencies: Set<object>,
+) => boolean
 
-export const trackInlineIR = visit<TrackInlineIR<IR>>().create(
+export const trackInlineIR: TrackInlineIR<IR> = visit<TrackInlineIR<IR>>().create(
     'trackInline',
     {
         trackInlineGet,
         trackInlineNative,
         trackInlineSet,
     },
-    (ir, ctx) => {
-        const sum = {
-            sideEffect: false,
-            dependencies: [] as object[],
-        }
+    (ir, ctx, dependencies): boolean => {
+        let sideEffect = false
 
         for (const child of iterateIR(ir)) {
-            const result = trackInlineIR(child, ctx)
-
-            sum.sideEffect ||= result.sideEffect
-            sum.dependencies.push(...result.dependencies)
+            const childSideEffect: boolean = trackInlineIR(child, ctx, dependencies)
+            sideEffect ||= childSideEffect
         }
 
-        if (sum.sideEffect) ctx.sideEffects.add(ir)
-
-        return sum
+        return sideEffect
     },
 )

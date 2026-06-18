@@ -11,37 +11,38 @@ export const applyInlineIR = (
     findStates: FindInlineStates,
     merged: ReadonlySet<SetIR>,
 ): { ir: IR; changed: boolean } => {
-    const replacements = new Map(
-        [...findStates.entries()].flatMap(([ir, state]): [IR, IR][] => {
-            if (ir.type !== 'Get') return []
+    const replacements = new Map<IR, IR>()
+    for (const [ir, state] of findStates) {
+        if (ir.type !== 'Get') continue
 
-            const element = state.get(ir.target)
-            if (!element || element === 'T') return []
+        const element = state.get(ir.target)
+        if (!element || element === 'T') continue
 
-            if (merged.has(element)) return []
+        if (merged.has(element)) continue
 
-            const count = countState.counts.get(element)
-            if (count !== 1) return []
+        const count = countState.counts.get(element)
+        if (count !== 1) continue
 
-            if (sideEffects.has(element)) return []
+        if (sideEffects.has(element)) continue
 
-            return [
-                [
-                    element,
-                    {
-                        stackTraces: element.stackTraces,
-                        env: element.env,
+        replacements.set(element, {
+            stackTraces: element.stackTraces,
+            env: element.env,
 
-                        type: 'Value',
-                        value: 0,
-                        thisValue: undefined,
-                        isSuper: false,
-                    },
-                ],
-                [ir, element.value],
-            ]
-        }),
-    )
+            type: 'Value',
+            value: 0,
+            thisValue: undefined,
+            isSuper: false,
+        })
+        replacements.set(ir, element.value)
+    }
+
+    findStates.clear()
+    sideEffects.clear()
+
+    if (countState.refs instanceof Map) countState.refs.clear()
+    if (countState.counts instanceof Map) countState.counts.clear()
+    if (merged instanceof Set) merged.clear()
 
     return replaceIR(ir, replacements)
 }

@@ -23,23 +23,28 @@ export const transferCountInlineSet: TransferCountInlineStateIR<Set> = (
         if (!needed) return input
     }
 
-    const output = {
-        refs: new Map(input.refs),
-        counts: new Map(input.counts),
-    }
+    const refs = new Map(input.refs)
+    let counts = input.counts
 
     if (oldElement) {
-        output.refs.delete(ir.target)
-        output.counts.set(ir, targets?.has(ir.target) && output.counts.has(ir) ? 'T' : oldElement)
+        const nextCounts = new Map(input.counts)
+
+        refs.delete(ir.target)
+        nextCounts.set(ir, targets?.has(ir.target) && nextCounts.has(ir) ? 'T' : oldElement)
+
+        counts = nextCounts
     }
 
     if (targets?.size) {
         for (const target of targets) {
-            if (!output.refs.has(target)) continue
+            if (!refs.has(target)) continue
 
-            output.refs.set(target, 'T')
+            refs.set(target, 'T')
         }
     }
 
-    return output
+    return {
+        refs,
+        counts,
+    }
 }
