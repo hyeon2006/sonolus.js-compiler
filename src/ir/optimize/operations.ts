@@ -23,8 +23,8 @@ export const binaryOperations: Record<BinaryOperator, (lhs: unknown, rhs: unknow
     '|': (lhs, rhs) => (lhs as never) | (rhs as never),
     '^': (lhs, rhs) => (lhs as never) ^ (rhs as never),
     '&': (lhs, rhs) => (lhs as never) & (rhs as never),
-    in: (lhs, rhs) => (lhs as never) in (rhs as never),
-    instanceof: (lhs, rhs) => lhs instanceof (rhs as never),
+    in: (lhs, rhs) => isInTarget(rhs) && (lhs as PropertyKey) in rhs,
+    instanceof: (lhs, rhs) => typeof rhs === 'function' && lhs instanceof rhs,
 }
 
 export const unaryOperations: Record<UnaryOperator, (arg: unknown) => unknown> = {
@@ -34,3 +34,6 @@ export const unaryOperations: Record<UnaryOperator, (arg: unknown) => unknown> =
     '~': (arg) => ~(arg as never),
     typeof: (arg) => typeof arg,
 }
+
+const isInTarget = (value: unknown): value is object =>
+    (typeof value === 'object' && value !== null) || typeof value === 'function'

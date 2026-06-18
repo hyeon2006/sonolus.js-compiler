@@ -13,9 +13,12 @@ export const transformBinary: TransformIR<Binary> = (ir, ctx) => {
 
     const operation = binaryOperations[ir.operator]
 
-    return rewriteAsExecute(ir, ctx, [
-        lhs,
-        rhs,
-        ctx.value(ir, operation(lhsResult.value, rhsResult.value)),
-    ])
+    let value: unknown
+    try {
+        value = operation(lhsResult.value, rhsResult.value)
+    } catch {
+        return { ...ir, lhs, rhs }
+    }
+
+    return rewriteAsExecute(ir, ctx, [lhs, rhs, ctx.value(ir, value)])
 }

@@ -11,5 +11,12 @@ export const transformUnary: TransformIR<Unary> = (ir, ctx) => {
 
     const operation = unaryOperations[ir.operator]
 
-    return rewriteAsExecute(ir, ctx, [arg, ctx.value(ir, operation(result.value))])
+    let value: unknown
+    try {
+        value = operation(result.value)
+    } catch {
+        return { ...ir, arg }
+    }
+
+    return rewriteAsExecute(ir, ctx, [arg, ctx.value(ir, value)])
 }
