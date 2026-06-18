@@ -8,7 +8,7 @@ import { rewriteAsExecute } from './utils.js'
 export const transformExecute: TransformIR<Execute> = (ir, ctx) => {
     const children: IR[] = []
     for (const [i, child] of ir.children.entries()) {
-        children.push(...expand(transformIR(child, ctx), i === ir.children.length - 1, ctx))
+        appendExpand(children, transformIR(child, ctx), i === ir.children.length - 1, ctx)
     }
 
     const cutOffIndex = children.findIndex(
@@ -24,8 +24,24 @@ export const transformExecute: TransformIR<Execute> = (ir, ctx) => {
     return { ...ir, children }
 }
 
-const expand = (ir: IR, shouldPreserve: boolean, ctx: TransformIRContext) =>
-    shouldPreserve ? expandPreserve(ir) : expandDiscard(ir, ctx)
+const appendExpand = (
+    children: IR[],
+    ir: IR,
+    shouldPreserve: boolean,
+    ctx: TransformIRContext,
+): void => {
+    if (shouldPreserve) {
+        append(children, expandPreserve(ir))
+    } else {
+        expandDiscardInto(children, ir, ctx)
+    }
+}
+
+const append = (children: IR[], values: IR[]): void => {
+    for (const value of values) {
+        children.push(value)
+    }
+}
 
 const expandPreserve = (ir: IR): IR[] => {
     switch (ir.type) {
@@ -37,39 +53,61 @@ const expandPreserve = (ir: IR): IR[] => {
 }
 
 const expandDiscard = (ir: IR, ctx: TransformIRContext): IR[] => {
+    const children: IR[] = []
+    expandDiscardInto(children, ir, ctx)
+
+    return children
+}
+
+const expandDiscardInto = (children: IR[], ir: IR, ctx: TransformIRContext): void => {
     switch (ir.type) {
         case 'Binary':
-            return [ir.lhs, ir.rhs].flatMap((ir) => expandDiscard(ir, ctx))
+            expandDiscardInto(children, ir.lhs, ctx)
+            expandDiscardInto(children, ir.rhs, ctx)
+            return
         case 'Conditional':
-            return [
+            children.push(
                 ctx.Conditional(ir, {
                     test: ir.test,
                     consequent: rewriteAsExecute(ir, ctx, expandDiscard(ir.consequent, ctx)),
                     alternate: rewriteAsExecute(ir, ctx, expandDiscard(ir.alternate, ctx)),
                 }),
-            ]
+            )
+            return
         case 'Execute':
-            return ir.children.flatMap((ir) => expandDiscard(ir, ctx))
+            for (const child of ir.children) {
+                expandDiscardInto(children, child, ctx)
+            }
+            return
         case 'Logical':
-            return [
+            children.push(
                 ctx.Logical(ir, {
                     operator: ir.operator,
                     lhs: ir.lhs,
                     rhs: rewriteAsExecute(ir, ctx, expandDiscard(ir.rhs, ctx)),
                 }),
-            ]
+            )
+            return
         case 'Native':
-            if (!sideEffectFreeFuncs.includes(ir.func)) return [ir]
+            if (!sideEffectFreeFuncs.includes(ir.func)) {
+                children.push(ir)
+                return
+            }
 
-            return ir.args.flatMap((ir) => expandDiscard(ir, ctx))
+            for (const arg of ir.args) {
+                expandDiscardInto(children, arg, ctx)
+            }
+            return
         case 'Unary':
-            return expandDiscard(ir.arg, ctx)
+            expandDiscardInto(children, ir.arg, ctx)
+            return
         case 'Get':
         case 'Member':
         case 'Reference':
         case 'Value':
-            return []
+            return
         default:
-            return [ir]
+            children.push(ir)
+            return
     }
 }

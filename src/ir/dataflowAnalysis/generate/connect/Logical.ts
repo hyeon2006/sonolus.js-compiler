@@ -6,7 +6,8 @@ export const connectLogical: ConnectIR<Logical> = (ir, inputs, ctx) => {
     const lhs = connectIR(ir.lhs, inputs, ctx)
     const rhs = connectIR(ir.rhs, lhs, ctx)
 
-    connectIns(ir, [...lhs, ...rhs], ctx)
+    connectIns(ir, lhs, ctx)
+    connectIns(ir, rhs, ctx)
 
     return [ir]
 }

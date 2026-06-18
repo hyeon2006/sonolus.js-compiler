@@ -5,27 +5,38 @@ import { ConnectIRContext } from './connect/context.js'
 import { connectIR } from './connect/index.js'
 
 export const generate = (ir: IR, irs: IR[]): Graph => {
+    const indexes = new Map<IR, number>()
+    const blocks = new Map<object, Block>()
+    for (let index = 0; index < irs.length; index++) {
+        const ir = irs[index]
+        indexes.set(ir, index)
+        if (ir.type === 'Block') blocks.set(ir.target, ir)
+    }
+
     const ctx: ConnectIRContext = {
-        blocks: new Map(
-            irs.filter((ir): ir is Block => ir.type === 'Block').map((ir) => [ir.target, ir]),
-        ),
-        ins: new Map(irs.map((ir) => [ir, new Set()])),
+        blocks,
+        ins: new Map(),
     }
 
     connectIR(ir, [], ctx)
 
-    const outs = new Map(irs.map((ir) => [ir, new Set<IR>()]))
+    const outs = new Map<IR, Set<IR>>()
 
     for (const [inKey, inValues] of ctx.ins) {
         for (const outKey of inValues) {
-            const outValues = outs.get(outKey)
-            if (!outValues) throw new Error('Unexpected missing values')
+            let outValues = outs.get(outKey)
+            if (!outValues) {
+                if (!indexes.has(outKey)) throw new Error('Unexpected missing values')
 
+                outValues = new Set()
+                outs.set(outKey, outValues)
+            }
             outValues.add(inKey)
         }
     }
 
     return {
+        indexes,
         ins: ctx.ins,
         outs: outs,
     }

@@ -7,5 +7,5 @@ export const eliminateIR = (ir: IR): { ir: IR; changed: boolean } => {
     const irs = collectIR(ir)
     const states = analyzeEliminateIR(ir, irs)
 
-    return applyEliminateIR(ir, states)
+    return applyEliminateIR(ir, irs, states)
 }

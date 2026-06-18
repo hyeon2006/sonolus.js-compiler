@@ -21,24 +21,25 @@ export const mapMerge = <K, V>(
     b: ReadonlyMap<K, V>,
     merge: (valueA: V | undefined, valueB: V | undefined) => V | undefined,
 ): ReadonlyMap<K, V> => {
-    const result = new Map<K, V>()
-    let sameAsA = true
+    if (a === b) return a
+
+    let result: Map<K, V> | undefined
     let sameAsB = true
+
+    const getResult = () => (result ??= new Map(a))
 
     for (const [key, valueA] of a) {
         const valueB = b.get(key)
 
         const value = merge(valueA, valueB)
         if (value === undefined) {
-            sameAsA = false
+            getResult().delete(key)
             if (valueB !== undefined) sameAsB = false
             continue
         }
 
-        if (value !== valueA) sameAsA = false
+        if (value !== valueA) getResult().set(key, value)
         if (value !== valueB) sameAsB = false
-
-        result.set(key, value)
     }
 
     for (const [key, valueB] of b) {
@@ -50,13 +51,11 @@ export const mapMerge = <K, V>(
             continue
         }
 
-        sameAsA = false
+        getResult().set(key, value)
         if (value !== valueB) sameAsB = false
-
-        result.set(key, value)
     }
 
-    if (sameAsA && result.size === a.size) return a
+    if (!result) return a
     if (sameAsB && result.size === b.size) return b
 
     return result

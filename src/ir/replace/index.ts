@@ -17,8 +17,21 @@ export const replaceIR = (ir: IR, replacements: Map<IR, IR>): { ir: IR; changed:
 
 const replace = (ir: IR, replacements: Map<IR, IR>): IR => {
     const newIR = replaceSelf(ir, replacements)
+    const children = iterateIR(newIR)
+    let childChanged = false
 
-    return mapIR(newIR, ...iterateIR(newIR).map((child) => replace(child, replacements)))
+    for (let index = 0; index < children.length; index++) {
+        const child = children[index]
+        const newChild = replace(child, replacements)
+        if (newChild === child) continue
+
+        children[index] = newChild
+        childChanged = true
+    }
+
+    if (!childChanged) return newIR
+
+    return mapIR(newIR, ...children)
 }
 
 const replaceSelf = (ir: IR, replacements: Map<IR, IR>): IR => {

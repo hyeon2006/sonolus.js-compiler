@@ -7,7 +7,7 @@ import { transferEliminateIR } from './transfer/index.js'
 
 export const analyzeEliminateIR = (ir: IR, irs: IR[]): EliminateStates => {
     const input: EliminateState = new Set()
-    const states: EliminateStates = new Map(irs.map((ir) => [ir, new Set()]))
+    const states: EliminateStates = new Map()
 
     dataAnalysisBackwardIR(ir, irs, input, states, {
         transfer: transferEliminateIR,

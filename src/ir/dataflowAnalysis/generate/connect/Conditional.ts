@@ -7,7 +7,8 @@ export const connectConditional: ConnectIR<Conditional> = (ir, inputs, ctx) => {
     const consequent = connectIR(ir.consequent, test, ctx)
     const alternate = connectIR(ir.alternate, test, ctx)
 
-    connectIns(ir, [...consequent, ...alternate], ctx)
+    connectIns(ir, consequent, ctx)
+    connectIns(ir, alternate, ctx)
 
     return [ir]
 }

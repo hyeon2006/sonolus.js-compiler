@@ -6,8 +6,13 @@ export type ConnectIRContext = {
 }
 
 export const connectIns = (ir: IR, inputs: IR[], ctx: ConnectIRContext): void => {
-    const ins = ctx.ins.get(ir)
-    if (!ins) throw new Error('Unexpected missing ins')
+    if (!inputs.length) return
+
+    let ins = ctx.ins.get(ir)
+    if (!ins) {
+        ins = new Set()
+        ctx.ins.set(ir, ins)
+    }
 
     for (const input of inputs) {
         ins.add(input)

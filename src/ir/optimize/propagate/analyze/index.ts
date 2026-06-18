@@ -7,7 +7,7 @@ import { transferPropagateIR } from './transfer/index.js'
 
 export const analyzePropagateIR = (ir: IR, irs: IR[]): PropagateStates => {
     const initial: PropagateState = new Map()
-    const states: PropagateStates = new Map(irs.map((ir) => [ir, new Map()]))
+    const states: PropagateStates = new Map()
 
     dataAnalysisForwardIR(ir, irs, initial, states, {
         transfer: transferPropagateIR,

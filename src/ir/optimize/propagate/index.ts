@@ -8,5 +8,7 @@ export const propagateIR = (ir: IR): { ir: IR; changed: boolean } => {
 
     const states = analyzePropagateIR(ir, irs)
 
+    irs.length = 0
+
     return applyPropagateIR(ir, states)
 }

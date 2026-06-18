@@ -1,7 +1,7 @@
 import { IR } from '../../nodes/index.js'
 import { generate } from '../generate/index.js'
+import { Graph } from '../graph.js'
 import { StateOperators, States } from '../state.js'
-import { meetAll } from '../utils.js'
 
 export const dataAnalysisForwardIR = <T>(
     ir: IR,
@@ -9,13 +9,15 @@ export const dataAnalysisForwardIR = <T>(
     initial: T,
     states: States<T>,
     operators: StateOperators<T>,
+    graph: Graph = generate(ir, irs),
 ): void => {
     const { transfer, meet, compare } = operators
 
-    const graph = generate(ir, irs)
+    const empty = new Set<IR>()
+    const dirty = new Uint8Array(irs.length)
+    dirty.fill(1)
 
-    const indexes = new Map(irs.map((ir, index) => [ir, index]))
-    const dirty = irs.map(() => true)
+    const getState = (ir: IR) => states.get(ir) ?? initial
 
     let needsSweep = true
     while (needsSweep) {
@@ -23,40 +25,40 @@ export const dataAnalysisForwardIR = <T>(
 
         for (let index = 0; index < irs.length; index++) {
             if (!dirty[index]) continue
-            dirty[index] = false
+            dirty[index] = 0
 
             const ir = irs[index]
 
-            const inputs = graph.ins.get(ir)
-            if (!inputs) throw new Error('Unexpected missing ins')
+            const inputs = graph.ins.get(ir) ?? empty
 
-            const inputStates = [...inputs].map((ir) => {
-                const state = states.get(ir)
-                if (!state) throw new Error('Unexpected missing state')
+            let input = initial
+            let hasInput = false
+            for (const ir of inputs) {
+                const state = getState(ir)
+                input = hasInput ? meet(input, state) : state
+                hasInput = true
+            }
 
-                return state
-            })
-
-            const input = meetAll(initial, inputStates, meet)
-
-            const oldState = states.get(ir)
-            if (!oldState) throw new Error('Unexpected missing old state')
-
+            const oldState = getState(ir)
             const output = transfer(ir, input, oldState)
 
+            if (output === oldState) continue
             if (compare(output, oldState)) continue
 
-            states.set(ir, output)
+            if (compare(output, initial)) {
+                states.delete(ir)
+            } else {
+                states.set(ir, output)
+            }
 
-            const outs = graph.outs.get(ir)
-            if (!outs) throw new Error('Unexpected missing outs')
+            const outs = graph.outs.get(ir) ?? empty
 
             for (const out of outs) {
-                const outIndex = indexes.get(out)
+                const outIndex = graph.indexes.get(out)
                 if (outIndex === undefined) throw new Error('Unexpected missing index')
 
                 if (dirty[outIndex]) continue
-                dirty[outIndex] = true
+                dirty[outIndex] = 1
 
                 if (outIndex <= index) needsSweep = true
             }
