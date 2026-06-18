@@ -5,9 +5,12 @@ import { isConstant, rewriteAsExecute, transformIRAndGet } from './utils.js'
 
 export const transformMember: TransformIR<Member> = (ir, ctx) => {
     const object = transformIRAndGet(ir.object, ctx)
+    const objectResult = isConstant(object)
+    if (ir.optional && objectResult && isNullish(objectResult.value))
+        return rewriteAsExecute(ir, ctx, [object, ctx.value(ir, undefined)])
+
     const key = transformIRAndGet(ir.key, ctx)
 
-    const objectResult = isConstant(object)
     if (!objectResult) return { ...ir, object, key }
 
     const keyResult = isConstant(key)
@@ -26,6 +29,8 @@ export const transformMember: TransformIR<Member> = (ir, ctx) => {
         ),
     ])
 }
+
+const isNullish = (value: unknown) => value === null || value === undefined
 
 const getPropertyDescriptor = (object: unknown, key: PropertyKey) => {
     while (object) {

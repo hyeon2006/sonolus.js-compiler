@@ -10,15 +10,26 @@ export const compileVariableDeclaration: CompileESTree<VariableDeclaration> = (n
     return ctx.Execute(node, {
         children: [
             ...node.declarations.flatMap((declaration) =>
-                compileVariableDeclarator(declaration, ctx),
+                compileVariableDeclarator(declaration, node.kind, ctx),
             ),
             ctx.zero(node),
         ],
     })
 }
 
-const compileVariableDeclarator = (node: VariableDeclarator, ctx: CompileESTreeContext) => {
-    if (!node.init) throw ctx.error(node, 'Variable must be initialized on declaration')
+const compileVariableDeclarator = (
+    node: VariableDeclarator,
+    kind: VariableDeclaration['kind'],
+    ctx: CompileESTreeContext,
+) => {
+    if (!node.init) {
+        if (kind === 'const') throw ctx.error(node, 'Variable must be initialized on declaration')
+
+        if (node.id.type !== 'Identifier')
+            throw ctx.error(node, 'Destructuring declaration must be initialized')
+
+        return bindPattern(node.id, ctx.zero(node), ctx)
+    }
 
     return bindPattern(node.id, compileESTree(node.init, ctx), ctx)
 }

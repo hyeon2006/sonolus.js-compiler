@@ -11,6 +11,7 @@ import { compileArrowFunctionExpression } from './expressions/ArrowFunctionExpre
 import { compileAssignmentExpression } from './expressions/AssignmentExpression.js'
 import { compileBinaryExpression } from './expressions/BinaryExpression.js'
 import { compileCallExpression } from './expressions/CallExpression.js'
+import { compileChainExpression } from './expressions/ChainExpression.js'
 import { compileConditionalExpression } from './expressions/ConditionalExpression.js'
 import { compileFunctionExpression } from './expressions/FunctionExpression.js'
 import { compileLogicalExpression } from './expressions/LogicalExpression.js'
@@ -48,6 +49,7 @@ export const compileESTree = visit<CompileESTree<Node>>().create(
         compileBlockStatement,
         compileBreakStatement,
         compileCallExpression,
+        compileChainExpression,
         compileConditionalExpression,
         compileContinueStatement,
         compileDoWhileStatement,

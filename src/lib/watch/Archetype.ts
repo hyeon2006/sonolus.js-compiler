@@ -115,10 +115,28 @@ export class Archetype {
 
     private readonly _entityImports: EnginePlayDataArchetype['imports'] = []
     protected defineImport<T extends EntityImportDefinition>(type: T): EntityImport<T> {
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
-        if (compiler.isCompiling) throw 'defineImport can only be called at compile time'
+        return this._defineEntityData(type, 'defineImport')
+    }
 
-        const data = Object.entries(type).map(([key, { name, def }], index) => ({
+    protected entityData<T extends EntityImportDefinition>(type: T): EntityImport<T> {
+        return this._defineEntityData(type, 'entityData')
+    }
+
+    private _defineEntityData<T extends EntityImportDefinition>(
+        type: T,
+        caller: string,
+    ): EntityImport<T> {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        if (compiler.isCompiling) throw `${caller} can only be called at compile time`
+
+        const entries = Object.entries(type)
+
+        if (this._entityImports.length + entries.length > 32) {
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
+            throw `Max ${caller} capacity (32) reached`
+        }
+
+        const data = entries.map(([key, { name, def }], index) => ({
             key,
             name,
             def,
@@ -134,9 +152,6 @@ export class Archetype {
                 }),
             })
         }
-
-        // eslint-disable-next-line @typescript-eslint/only-throw-error
-        if (data.length > 32) throw 'Max defineImport capacity (32) reached'
 
         return {
             ...Object.fromEntries(

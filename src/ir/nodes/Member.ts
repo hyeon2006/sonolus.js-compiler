@@ -4,6 +4,7 @@ export type Member = BaseIR & {
     type: 'Member'
     object: IR
     key: IR
+    optional?: boolean
 }
 
 export type MemberChildren = [object: IR, key: IR]
