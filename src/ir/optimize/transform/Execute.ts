@@ -21,7 +21,17 @@ export const transformExecute: TransformIR<Execute> = (ir, ctx) => {
     if (children.length === 0) return ctx.zero(ir)
     if (children.length === 1) return children[0]
 
-    return { ...ir, children }
+    return sameChildren(ir.children, children) ? ir : { ...ir, children }
+}
+
+const sameChildren = (a: readonly IR[], b: readonly IR[]): boolean => {
+    if (a.length !== b.length) return false
+
+    for (let i = 0; i < a.length; i++) {
+        if (a[i] !== b[i]) return false
+    }
+
+    return true
 }
 
 const appendExpand = (

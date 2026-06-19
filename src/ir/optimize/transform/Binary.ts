@@ -9,7 +9,7 @@ export const transformBinary: TransformIR<Binary> = (ir, ctx) => {
 
     const lhsResult = isConstant(lhs)
     const rhsResult = isConstant(rhs)
-    if (!lhsResult || !rhsResult) return { ...ir, lhs, rhs }
+    if (!lhsResult || !rhsResult) return lhs === ir.lhs && rhs === ir.rhs ? ir : { ...ir, lhs, rhs }
 
     const operation = binaryOperations[ir.operator]
 
@@ -17,7 +17,7 @@ export const transformBinary: TransformIR<Binary> = (ir, ctx) => {
     try {
         value = operation(lhsResult.value, rhsResult.value)
     } catch {
-        return { ...ir, lhs, rhs }
+        return lhs === ir.lhs && rhs === ir.rhs ? ir : { ...ir, lhs, rhs }
     }
 
     return rewriteAsExecute(ir, ctx, [lhs, rhs, ctx.value(ir, value)])

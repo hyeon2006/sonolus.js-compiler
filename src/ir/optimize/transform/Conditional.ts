@@ -15,12 +15,10 @@ export const transformConditional: TransformIR<Conditional> = (ir, ctx) => {
     const alternate = transformIRAndGet(ir.alternate, ctx)
 
     return (
-        transformObjectConditional(ir, test, consequent, alternate, ctx) ?? {
-            ...ir,
-            test,
-            consequent,
-            alternate,
-        }
+        transformObjectConditional(ir, test, consequent, alternate, ctx) ??
+        (test === ir.test && consequent === ir.consequent && alternate === ir.alternate
+            ? ir
+            : { ...ir, test, consequent, alternate })
     )
 }
 

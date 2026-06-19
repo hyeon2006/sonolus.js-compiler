@@ -7,7 +7,7 @@ export const transformUnary: TransformIR<Unary> = (ir, ctx) => {
     const arg = transformIRAndGet(ir.arg, ctx)
 
     const result = isConstant(arg)
-    if (!result) return { ...ir, arg }
+    if (!result) return arg === ir.arg ? ir : { ...ir, arg }
 
     const operation = unaryOperations[ir.operator]
 
@@ -15,7 +15,7 @@ export const transformUnary: TransformIR<Unary> = (ir, ctx) => {
     try {
         value = operation(result.value)
     } catch {
-        return { ...ir, arg }
+        return arg === ir.arg ? ir : { ...ir, arg }
     }
 
     return rewriteAsExecute(ir, ctx, [arg, ctx.value(ir, value)])

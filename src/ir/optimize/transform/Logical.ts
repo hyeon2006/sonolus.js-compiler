@@ -18,7 +18,7 @@ export const transformLogical: TransformIR<Logical> = (ir, ctx) => {
     }
 
     const rhs = transformIRAndGet(ir.rhs, ctx)
-    return { ...ir, lhs, rhs }
+    return lhs === ir.lhs && rhs === ir.rhs ? ir : { ...ir, lhs, rhs }
 }
 
 const transformNullish: TransformIR<Logical> = (ir, ctx) => {
@@ -34,5 +34,5 @@ const transformNullish: TransformIR<Logical> = (ir, ctx) => {
 
     const rhs = transformIRAndGet(ir.rhs, ctx)
 
-    return { ...ir, lhs, rhs }
+    return lhs === ir.lhs && rhs === ir.rhs ? ir : { ...ir, lhs, rhs }
 }
