@@ -5,7 +5,6 @@ import { inlineIR } from './inline/index.js'
 import { propagateIR } from './propagate/index.js'
 import { createTransformIRContext } from './transform/context.js'
 import { transformIR } from './transform/index.js'
-import { resetCleanIR } from './transform/utils.js'
 
 const step = (prev: (ir: IR) => IR, next: (ir: IR) => { ir: IR; changed: boolean }) => (ir: IR) => {
     while (true) {
@@ -18,11 +17,7 @@ const step = (prev: (ir: IR) => IR, next: (ir: IR) => { ir: IR; changed: boolean
     }
 }
 
-const transform = (ir: IR) => {
-    resetCleanIR()
-
-    return transformIR(ir, createTransformIRContext())
-}
+const transform = (ir: IR) => transformIR(ir, createTransformIRContext())
 
 const propagate = step(transform, propagateIR)
 

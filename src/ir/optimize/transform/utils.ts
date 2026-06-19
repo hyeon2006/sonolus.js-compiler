@@ -14,15 +14,13 @@ export const rewriteAsExecute = (ir: IR, ctx: TransformIRContext, children: IR[]
     )
 
 // Membership = "re-transforming this node reproduces it unchanged with no side
-// effects". A plain Set (faster than WeakSet at this call volume), reset at the
-// start of every transform pass via `resetCleanIR` — transform always produces
-// fresh nodes, so no identity is shared across passes and stale marks are never
-// queried; resetting also bounds memory to a single pass.
-const cleanIR = new Set<IR>()
-
-export const resetCleanIR = (): void => {
-    cleanIR.clear()
-}
+// effects". A WeakSet, not a plain Set: a single transform pass over a very
+// large callback can produce far more than a plain Set's ~16.7M (2^24) element
+// limit, which would throw `RangeError: Set maximum size exceeded`. The WeakSet
+// has no such limit, needs no per-pass reset (dead nodes are GC'd), and keeps
+// marks across passes (cleanliness is a stable structural property), so skipping
+// stays effective even on huge inputs.
+const cleanIR = new WeakSet<IR>()
 
 // A node is "clean" iff its `transform` is idempotent AND mutates no shared
 // state, AND every child is clean (so one non-clean descendant taints the whole
@@ -33,7 +31,7 @@ export const resetCleanIR = (): void => {
 // on running them twice): every Array/Object Constructor* node (push into a
 // shared `array`), every Array/Object Destructor* node (consume `target`
 // elements/keys), Declare/Call/New/JSCall/Super (lexical scope side effects),
-// Reference (lexical resolution), Member/Assign/ForOf (intrinsic get/set
+// Reference (lexical resolution), Assign/ForOf (intrinsic set / iteration
 // expansion), and Block/Switch (break rewriting / object-return buffers).
 //
 // Direct per-type child checks avoid `iterateIR` (which would allocate a
@@ -50,6 +48,8 @@ const isCleanIR = (ir: IR): boolean => {
         case 'Set':
         case 'Break':
             return cleanIR.has(ir.value)
+        case 'Member':
+            return cleanIR.has(ir.object) && cleanIR.has(ir.key)
         case 'Binary':
         case 'Logical':
             return cleanIR.has(ir.lhs) && cleanIR.has(ir.rhs)
@@ -75,6 +75,13 @@ const allCleanIR = (irs: readonly IR[]): boolean => {
 
     return true
 }
+
+// True once a node has been transformed and found clean — i.e. transforming it
+// again is guaranteed to reproduce it. The `transformIR` wrapper short-circuits
+// on this so EVERY re-transform of a clean subtree (the second `transformIRAndGet`
+// pass, `rewriteAsExecute`, `expandDiscardInto`, and the optimizer's repeated
+// step-loop passes) returns in O(1) instead of re-descending.
+export const hasCleanIR = (ir: IR): boolean => cleanIR.has(ir)
 
 // Records, for every transform result, whether re-transforming it is a no-op.
 // Wrapped around the `transformIR` dispatcher so children are marked before
