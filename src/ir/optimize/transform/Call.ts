@@ -75,7 +75,9 @@ const bindPrototypeConstructor = (env: IR['env'], prototype: unknown): IR['env']
 
         lexical: {
             get: (name) => (name === ctor.name ? ctor : env.lexical.get(name)),
-            set: (ir, name, value, ctx) => env.lexical.set(ir, name, value, ctx),
+            set: (ir, name, value, ctx) => {
+                env.lexical.set(ir, name, value, ctx)
+            },
         },
     }
 }

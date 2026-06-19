@@ -1,9 +1,11 @@
 import { IR } from '../nodes/index.js'
+import { validateIR } from '../validate/index.js'
 import { eliminateIR } from './eliminate/index.js'
 import { inlineIR } from './inline/index.js'
 import { propagateIR } from './propagate/index.js'
 import { createTransformIRContext } from './transform/context.js'
 import { transformIR } from './transform/index.js'
+import { resetCleanIR } from './transform/utils.js'
 
 const step = (prev: (ir: IR) => IR, next: (ir: IR) => { ir: IR; changed: boolean }) => (ir: IR) => {
     while (true) {
@@ -16,7 +18,11 @@ const step = (prev: (ir: IR) => IR, next: (ir: IR) => { ir: IR; changed: boolean
     }
 }
 
-const transform = (ir: IR) => transformIR(ir, createTransformIRContext())
+const transform = (ir: IR) => {
+    resetCleanIR()
+
+    return transformIR(ir, createTransformIRContext())
+}
 
 const propagate = step(transform, propagateIR)
 
@@ -25,7 +31,9 @@ const eliminate = step(propagate, eliminateIR)
 const inline = step(eliminate, inlineIR)
 
 export const optimizeIR = (ir: IR, level: 'low' | 'high'): IR => {
-    if (level === 'low') return propagate(ir)
+    const result = level === 'low' ? propagate(ir) : inline(ir)
 
-    return inline(ir)
+    validateIR(result)
+
+    return result
 }

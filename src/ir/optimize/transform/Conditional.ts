@@ -7,21 +7,21 @@ import { createCopyObjectChildren, createObjectBuffer, getObjectResult } from '.
 
 export const transformConditional: TransformIR<Conditional> = (ir, ctx) => {
     const test = transformIRAndGet(ir.test, ctx)
+
+    const result = isConstant(test)
+    if (result) return transformIRAndGet(result.value ? ir.consequent : ir.alternate, ctx)
+
     const consequent = transformIRAndGet(ir.consequent, ctx)
     const alternate = transformIRAndGet(ir.alternate, ctx)
 
-    const result = isConstant(test)
-    if (!result)
-        return (
-            transformObjectConditional(ir, test, consequent, alternate, ctx) ?? {
-                ...ir,
-                test,
-                consequent,
-                alternate,
-            }
-        )
-
-    return result.value ? consequent : alternate
+    return (
+        transformObjectConditional(ir, test, consequent, alternate, ctx) ?? {
+            ...ir,
+            test,
+            consequent,
+            alternate,
+        }
+    )
 }
 
 const transformObjectConditional = (

@@ -37,10 +37,11 @@ import { transformUnary } from './Unary.js'
 import { transformValue } from './Value.js'
 import { transformWhile } from './While.js'
 import { TransformIRContext } from './context.js'
+import { markCleanIR } from './utils.js'
 
 export type TransformIR<N extends IR> = (ir: N, ctx: TransformIRContext) => IR
 
-export const transformIR = visit<TransformIR<IR>>().create('transform', {
+const transformIRVisitor = visit<TransformIR<IR>>().create('transform', {
     transformArrayConstructor,
     transformArrayConstructorAdd,
     transformArrayConstructorSpread,
@@ -78,3 +79,5 @@ export const transformIR = visit<TransformIR<IR>>().create('transform', {
     transformValue,
     transformWhile,
 })
+
+export const transformIR: TransformIR<IR> = (ir, ctx) => markCleanIR(transformIRVisitor(ir, ctx))

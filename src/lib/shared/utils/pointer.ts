@@ -27,10 +27,13 @@ export const pointer = <T>(
 
         [Intrinsic.Get]: (ir, ctx) => pointerNative(ir, 'GetShifted', [id, x, y, s], ctx),
         [Intrinsic.Set]: (ir, value, ctx) => {
-            if (!writableCallbacks.includes(ir.env.callback))
-                throw ctx.error(ir, `Cannot mutate in ${ir.env.callback} callback`)
+            const validate = writableCallbacks.includes(ir.env.callback)
+                ? undefined
+                : (ir: IR) => {
+                      throw ctx.error(ir, `Cannot mutate in ${ir.env.callback} callback`)
+                  }
 
-            return pointerNative(ir, 'SetShifted', [id, x, y, s, () => value], ctx)
+            return pointerNative(ir, 'SetShifted', [id, x, y, s, () => value], ctx, validate)
         },
     }) satisfies Pointer as never
 
@@ -49,8 +52,10 @@ const pointerNative = (
     func: RuntimeFunction,
     args: (number | (() => IR))[],
     ctx: TransformIRContext,
+    validate?: (ir: IR) => void,
 ) =>
     ctx.Native(ir, {
         func,
         args: args.map((arg) => (typeof arg === 'number' ? ctx.value(ir, arg) : arg())),
+        ...(validate && { validate }),
     })
