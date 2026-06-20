@@ -3,7 +3,6 @@ import { Execute } from '../../nodes/Execute.js'
 import { IR } from '../../nodes/index.js'
 import { TransformIRContext } from './context.js'
 import { transformIR, TransformIR } from './index.js'
-import { rewriteAsExecute } from './utils.js'
 
 export const transformExecute: TransformIR<Execute> = (ir, ctx) => {
     const children: IR[] = []
@@ -32,6 +31,27 @@ const sameChildren = (a: readonly IR[], b: readonly IR[]): boolean => {
     }
 
     return true
+}
+
+// Wraps an already-discard-expanded child list into an Execute WITHOUT
+// re-transforming it: mirrors `transformExecute`'s tail (cut off after a
+// Break/Throw, then collapse empty/single) but skips the per-child transform.
+// `expandDiscard` already produced a fully discard-expanded, flat list, so the
+// re-transform that `rewriteAsExecute` would do is a structural no-op — yet it
+// re-descends every child and, because the discard branches are rebuilt fresh
+// each pass, compounds into millions of redundant re-transforms on large bodies.
+const buildDiscardExecute = (ir: IR, children: IR[], ctx: TransformIRContext): IR => {
+    const cutOffIndex = children.findIndex(
+        (child) => child.type === 'Break' || child.type === 'Throw',
+    )
+    if (cutOffIndex !== -1) {
+        children.length = cutOffIndex + 1
+    }
+
+    if (children.length === 0) return ctx.zero(ir)
+    if (children.length === 1) return children[0]
+
+    return ctx.Execute(ir, { children })
 }
 
 const appendExpand = (
@@ -79,8 +99,8 @@ const expandDiscardInto = (children: IR[], ir: IR, ctx: TransformIRContext): voi
             children.push(
                 ctx.Conditional(ir, {
                     test: ir.test,
-                    consequent: rewriteAsExecute(ir, ctx, expandDiscard(ir.consequent, ctx)),
-                    alternate: rewriteAsExecute(ir, ctx, expandDiscard(ir.alternate, ctx)),
+                    consequent: buildDiscardExecute(ir, expandDiscard(ir.consequent, ctx), ctx),
+                    alternate: buildDiscardExecute(ir, expandDiscard(ir.alternate, ctx), ctx),
                 }),
             )
             return
@@ -94,7 +114,7 @@ const expandDiscardInto = (children: IR[], ir: IR, ctx: TransformIRContext): voi
                 ctx.Logical(ir, {
                     operator: ir.operator,
                     lhs: ir.lhs,
-                    rhs: rewriteAsExecute(ir, ctx, expandDiscard(ir.rhs, ctx)),
+                    rhs: buildDiscardExecute(ir, expandDiscard(ir.rhs, ctx), ctx),
                 }),
             )
             return
