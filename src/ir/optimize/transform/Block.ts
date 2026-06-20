@@ -17,10 +17,13 @@ export const transformBlock: TransformIR<Block> = (ir, ctx) => {
     let body = transformIRAndGet(ir.body, ctx)
 
     while (true) {
-        const count = countBreaks(body, ir.target)
-        if (count === 0) return body
+        // Collect the target's breaks once per iteration and reuse the list for
+        // the empty-check and the object-return check, instead of re-walking the
+        // (often large, inlined) body multiple times.
+        const breaks = collectBreaks(body, ir.target)
+        if (!breaks.length) return body
 
-        const objectReturnBlock = transformObjectReturnBlock(ir, body, ctx)
+        const objectReturnBlock = transformObjectReturnBlock(ir, body, breaks, ctx)
         if (objectReturnBlock) return objectReturnBlock
 
         const replacements = new Map<IR, IR>()
@@ -31,16 +34,6 @@ export const transformBlock: TransformIR<Block> = (ir, ctx) => {
 
         body = transformIRAndGet(result.ir, ctx)
     }
-}
-
-const countBreaks = (ir: IR, target: object) => {
-    let count = 0
-
-    visitBreaks(ir, target, () => {
-        count++
-    })
-
-    return count
 }
 
 const collectBreaks = (ir: IR, target: object) => {
@@ -98,11 +91,9 @@ const findBreakReplacements = (ir: IR, target: object, replacements: Map<IR, IR>
 const transformObjectReturnBlock = (
     ir: Block,
     body: IR,
+    targetBreaks: Break[],
     ctx: TransformIRContext,
 ): IR | undefined => {
-    const targetBreaks = collectBreaks(body, ir.target)
-    if (!targetBreaks.length) return
-
     const breakResults = targetBreaks.map((breakIR) => getObjectResult(breakIR.value))
     if (breakResults.some((result) => !result)) return
 
